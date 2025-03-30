@@ -14,6 +14,12 @@ import {
 const messageInput = document.getElementById('messageInput');
 const sendButton = document.getElementById('sendButton');
 const messagesContainer = document.getElementById('messagesContainer');
+const connectionStatus = document.getElementById('connectionStatus');
+
+// Track connection status
+/* @tweakable Time to wait before considering connection failed (ms) */
+const CONNECTION_TIMEOUT = 5000;
+let connectionEstablished = false;
 
 // Initialize the page
 function init() {
@@ -32,6 +38,13 @@ function init() {
     
     // Notify parent that iframe is ready
     sendReadyMessage();
+    
+    // Set timeout for connection check
+    setTimeout(() => {
+        if (!connectionEstablished) {
+            addMessageToUI("Warning: No response received from parent frame. Check that your domains match and postMessage is working.");
+        }
+    }, CONNECTION_TIMEOUT);
 }
 
 // Send message to parent window
@@ -45,36 +58,62 @@ function sendMessage() {
         timestamp: new Date().toISOString()
     };
     
-    // Post message to parent
-    window.parent.postMessage(messageData, TARGET_ORIGIN);
-    
-    if (CLEAR_INPUT_AFTER_SEND) {
-        messageInput.value = '';
+    try {
+        // Post message to parent
+        window.parent.postMessage(messageData, TARGET_ORIGIN);
+        
+        if (CLEAR_INPUT_AFTER_SEND) {
+            messageInput.value = '';
+        }
+        
+        // Add send indicator to UI
+        addMessageToUI(`Sent: ${message}`, true);
+    } catch (error) {
+        addMessageToUI(`Error sending message: ${error.message}`, false);
+        console.error("Error sending message:", error);
     }
-    
-    // Add send indicator to UI
-    addMessageToUI(`Sent: ${message}`, true);
 }
 
 // Notify parent that iframe is ready
 function sendReadyMessage() {
     const readyMessage = {
         type: 'iframeReady',
+        source: 'iframetest1',
         timestamp: new Date().toISOString()
     };
     
-    window.parent.postMessage(readyMessage, TARGET_ORIGIN);
+    try {
+        window.parent.postMessage(readyMessage, TARGET_ORIGIN);
+        addMessageToUI("Ready message sent to parent", true);
+    } catch (error) {
+        addMessageToUI(`Error sending ready message: ${error.message}`, false);
+        console.error("Error sending ready message:", error);
+    }
 }
 
 // Handle received messages
 function receiveMessage(event) {
-    // Security check (can be enhanced for production)
-    // For demo we accept all origins, but in production you would check event.origin
+    // Security check for allowed origins
+    /* @tweakable List of allowed origins */
+    const ALLOWED_ORIGINS = ["https://websim.ai"];
+    
+    if (!ALLOWED_ORIGINS.some(origin => event.origin.startsWith(origin))) {
+        console.warn('Received message from untrusted origin:', event.origin);
+        return;
+    }
+    
+    // Update connection status
+    if (!connectionEstablished) {
+        connectionEstablished = true;
+        connectionStatus.textContent = "Connected to parent";
+        connectionStatus.classList.remove("disconnected");
+        connectionStatus.classList.add("connected");
+    }
     
     const message = event.data;
     
     if (LOG_RECEIVED_MESSAGES) {
-        console.log('Received message:', message);
+        console.log('Received message from:', event.origin, 'data:', message);
     }
     
     // Process different message types
@@ -82,12 +121,28 @@ function receiveMessage(event) {
         // Display message in UI
         if (message.data !== undefined) {
             addMessageToUI(`Received: ${message.data}`);
+            
+            // Send acknowledgment back
+            const ack = {
+                type: 'acknowledgment',
+                receivedMessageId: message.id || 'unknown',
+                timestamp: new Date().toISOString()
+            };
+            window.parent.postMessage(ack, TARGET_ORIGIN);
         }
         
         // Handle specific message types if needed
         switch (message.type) {
             case 'parentCommand':
                 // Handle parent commands here
+                break;
+            case 'connectionCheck':
+                // Respond to connection checks
+                window.parent.postMessage({
+                    type: 'connectionResponse',
+                    source: 'iframetest1',
+                    timestamp: new Date().toISOString()
+                }, TARGET_ORIGIN);
                 break;
             // Add other message types as needed
         }
@@ -126,4 +181,3 @@ function addMessageToUI(text, isSent = false) {
 
 // Initialize the page when DOM is ready
 document.addEventListener('DOMContentLoaded', init);
-

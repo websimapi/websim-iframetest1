@@ -1,7 +1,7 @@
 // Configuration for iframe messaging
 
-/* @tweakable Target origin for sending messages (set to * for any origin, or specific URL in production) */
-export const TARGET_ORIGIN = "*";
+/* @tweakable Target origin for sending messages (set to specific URL for security) */
+export const TARGET_ORIGIN = "https://websim.ai";
 
 /* @tweakable Whether to log received messages to console */
 export const LOG_RECEIVED_MESSAGES = true;
@@ -31,4 +31,3 @@ export const INPUT_PLACEHOLDER = "Enter your message";
 
 /* @tweakable Time format for message timestamps */
 export const TIMESTAMP_FORMAT = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
-

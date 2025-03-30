@@ -4,10 +4,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Iframe Messaging Demo</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Add a debug output for connection status -->
+    <style>
+        .status-indicator {
+            padding: 5px 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>Iframe Communication</h1>
+        <div id="connectionStatus" class="status-indicator disconnected">Not Connected</div>
         <div class="input-group">
             <input type="text" id="messageInput" placeholder="Enter your message">
             <button id="sendButton">Send Message</button>
